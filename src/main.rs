@@ -14,9 +14,6 @@ use chrono::prelude::*;
 use clipboard::ClipboardProvider;
 use clipboard::ClipboardContext;
 
-// deal with directories
-// change potential error unwraps and unreachables to exit codes
-
 fn main() {
   let unix_epoch_dt = Utc.ymd(1970, 01, 01).and_hms_milli(00, 00, 00,00);
 
@@ -24,7 +21,7 @@ fn main() {
   let matches = clap_app!(timestamp =>
     (version: "0.1")
     (author: "azunymous <azu@azunymo.us>")
-    (about: "Unix Timestamp Tools - \n 
+    (about: "Unix Timestamp Utility - \n 
       Lets you generate, check and rename files with unix timestamps")
         // (@arg CONFIG: -c --config +takes_value "Sets a custom config file") // Set ms or s?
         (@subcommand generate =>
