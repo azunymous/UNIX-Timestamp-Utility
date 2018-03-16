@@ -33,7 +33,7 @@ name = "backtrace-sys"
 version = "0.1.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "cc 1.0.7 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cc 1.0.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.39 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -49,7 +49,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "cc"
-version = "1.0.7"
+version = "1.0.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
@@ -274,7 +274,7 @@ dependencies = [
 
 [[package]]
 name = "timestamp"
-version = "0.1.0"
+version = "0.1.5"
 dependencies = [
  "chrono 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "clap 2.31.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -336,7 +336,7 @@ dependencies = [
 "checksum backtrace-sys 0.1.16 (registry+https://github.com/rust-lang/crates.io-index)" = "44585761d6161b0f57afc49482ab6bd067e4edef48c12a152c237eb0203f7661"
 "checksum bitflags 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)" = "b3c30d3802dfb7281680d6285f2ccdaa8c2d8fee41f93805dba5c4cf50dc23cf"
 "checksum block 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)" = "0d8c1fef690941d3e7788d328517591fecc684c084084702d6ff1641e993699a"
-"checksum cc 1.0.7 (registry+https://github.com/rust-lang/crates.io-index)" = "87f38f122db5615319a985757e526c00161d924d19b71a0f3e80c52bab1adcf6"
+"checksum cc 1.0.8 (registry+https://github.com/rust-lang/crates.io-index)" = "d9324127e719125ec8a16e6e509abc4c641e773621b50aea695af3f005656d61"
 "checksum cfg-if 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "d4c819a1287eb618df47cc647173c5c4c66ba19d888a6e50d605672aed3140de"
 "checksum chrono 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "7c20ebe0b2b08b0aeddba49c609fe7957ba2e33449882cb186a180bc60682fa9"
 "checksum clap 2.31.1 (registry+https://github.com/rust-lang/crates.io-index)" = "5dc18f6f4005132120d9711636b32c46a233fad94df6217fa1d81c5e97a9f200"
