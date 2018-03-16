@@ -1,0 +1,10 @@
+[package]
+name = "timestamp"
+version = "0.1.0"
+authors = ["azunymous <azu@azunymo.us>"]
+
+[dependencies]
+rand = "0.3.14"
+clap = "2.31.1"
+chrono = "0.4"
+clipboard = "0.4.6"
