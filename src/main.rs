@@ -14,12 +14,25 @@ use chrono::prelude::*;
 use clipboard::ClipboardProvider;
 use clipboard::ClipboardContext;
 
+
 fn main() {
-  let unix_epoch_dt = Utc.ymd(1970, 01, 01).and_hms_milli(00, 00, 00,00);
+  match timestamp() {
+   Ok(_) => (),
+   Err(err) => {
+    // -404: Missing argument
+    // -400: Wrongly formatted argument 
+    // -406 Incorrect argument- file does not exist and is not directory
 
+    // -502 Unreachable state
+    eprintln!("error: {:?}", err);
+    std::process::exit(-1);
+  }
+}
+}
 
+fn timestamp() -> Result<(), io::Error>{
   let matches = clap_app!(timestamp =>
-    (version: "0.1")
+    (version: "0.15")
     (author: "azunymous <azu@azunymo.us>")
     (about: "Unix Timestamp Utility - \n 
       Lets you generate, check and rename files with unix timestamps")
@@ -43,10 +56,6 @@ fn main() {
           )
         ).get_matches();
 
-
-  let stamp = rand::thread_rng().gen_range(100, 101);
-  println!("Hello, {}!", stamp);
-
    // Initialize clipboard
    let mut ctx: ClipboardContext = ClipboardProvider::new().unwrap();
 
@@ -55,8 +64,7 @@ fn main() {
         // Check if date is provided
         if let Some(date) = generate_matches.value_of("date") {
           println!("Generating {}", date);
-          let unixdur = to_unix(date.to_owned())
-          .expect("Wrong format!");
+          let unixdur = to_unix(date.to_owned())?;
           if generate_matches.is_present("clipboard") {
             ctx.set_contents(unixdur.to_string()).expect("Can't copy to clipboard!");
           }
@@ -74,7 +82,7 @@ fn main() {
       },
       ("check", Some(check_matches)) =>{
             // Now we have a reference to check's matches
-            
+            // filename is safe to unwrap as it is required argument
             match Path::new(check_matches.value_of("filename").unwrap()).file_stem() {
               None => println!("No filename in path!"),
               Some(name) => {
@@ -88,9 +96,9 @@ fn main() {
                     unixnano = ((n % 1000)* 1000000) as u32;
                     unixsecs = (n-(n%1000))/1000;
                   },
-                  Err(_) => {
+                  Err(_e) => {
                     println!("Please enter a timestamp");
-                    unreachable!();
+                    return  Err(io::Error::new(io::ErrorKind::Other,"-400 Wrongly formatted timestamp"))
                   },
                 };
                 println!("{}s and {} ms",unixsecs,unixnano/1000000 );
@@ -113,7 +121,7 @@ fn main() {
             } else if rename_matches.is_present("stamp") {
               match rename_matches.value_of("stamp").unwrap().parse() {
                 Ok(n) => n,
-                Err(_) => unreachable!(),
+                Err(_) => return Err(io::Error::new(io::ErrorKind::Other,"-406 Could not parse timestamp")),
               }
             } else {
               to_unix((Utc::now().format("%Y-%m-%d %H:%M:%S%.f").to_string())).expect("Wrong format?")
@@ -138,17 +146,22 @@ fn main() {
             } 
             println!("to {}", output.to_string_lossy() );
             fs::rename(path, output).expect("Could not rename!");
-            } else if path.is_dir() {
-              unimplemented!();
-            } else {
+          } else if path.is_dir() {
+            unimplemented!();
+          } else {
               // Not a file
-              unreachable!();
+              return Err(io::Error::new(io::ErrorKind::Other,"-406 Not a file"))
             }
             
           },
-        ("", None)   => println!("No command was used"), // If no subcommand was usd it'll match the tuple ("", None)
-        _            => unreachable!(), // If all subcommands are defined above, anything else is unreachabe!()
+        ("", None)   => {
+          println!("No command was used"); // If no subcommand was usd it'll match the tuple ("", None)
+          println!("Type timestamp -h for help");
+        },
+        _            => return Err(io::Error::new(io::ErrorKind::Other,"-502 Unreachable'")), // If all subcommands are defined above, anything else is unreachabe!()
       }
+
+      Ok(())
     }
 
 
@@ -161,7 +174,7 @@ fn main() {
       }
     }
 
-    fn to_unix(date: String) -> Result<u64, std::io::Error> {
+    fn to_unix(date: String) -> Result<u64, io::Error> {
       let unix_epoch_dt = Utc.ymd(1970, 01, 01).and_hms_milli(00, 00, 00,00);
       match Utc.datetime_from_str(&date, "%Y-%m-%d %H:%M:%S%.f")
       {
@@ -169,7 +182,7 @@ fn main() {
           let unixdur = v.signed_duration_since(unix_epoch_dt);
           Ok(unixdur.num_milliseconds() as u64)
         },
-        Err(e) => Err(std::io::Error::new(std::io::ErrorKind::Other,"Not formatted in '%Y-%m-%d %H:%M:%S%.f'")),
+        Err(_e) => Err(io::Error::new(io::ErrorKind::Other,"Not formatted in '%Y-%m-%d %H:%M:%S%.f'")),
       }
     }
 
