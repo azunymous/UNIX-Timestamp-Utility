@@ -8,21 +8,22 @@ extern crate clipboard;
 use std::io;
 use std::fs;
 use std::path::Path;
+use std::cmp::Ordering;
 use rand::Rng;
 use chrono::prelude::*;
 
 use clipboard::ClipboardProvider;
 use clipboard::ClipboardContext;
 
+// Set range of given Unix timestamp when --randomize is selected
+static RANGE: i64 = 15000;
 
 fn main() {
   match timestamp() {
    Ok(_) => (),
    Err(err) => {
-    // -404: Missing argument
     // -400: Wrongly formatted argument 
     // -406 Incorrect argument- file does not exist and is not directory
-
     // -502 Unreachable state
     eprintln!("error: {:?}", err);
     std::process::exit(-1);
@@ -61,30 +62,28 @@ fn timestamp() -> Result<(), io::Error>{
 
    match matches.subcommand() {
     ("generate", Some(generate_matches)) =>{
+      let unixdur: u64;
         // Check if date is provided
         if let Some(date) = generate_matches.value_of("date") {
           println!("Generating {}", date);
-          let unixdur = to_unix(date.to_owned())?;
-          if generate_matches.is_present("clipboard") {
-            ctx.set_contents(unixdur.to_string()).expect("Can't copy to clipboard!");
-          }
-
+          unixdur = to_unix(date.to_owned())?;
         } else {
           let now = Utc::now().format("%Y-%m-%d %H:%M:%S%.f").to_string();
-          let unixdur = to_unix(now).expect("Wrong format?");
+          unixdur = to_unix(now).expect("Wrong format?");
           println!("Generating today:\n{}", unixdur.to_string());
-
-          if generate_matches.is_present("clipboard") {
-            ctx.set_contents(unixdur.to_string()).expect("Can't copy to clipboard!");
-          }
         }
-
+        if generate_matches.is_present("clipboard") {
+          ctx.set_contents(unixdur.to_string()).expect("Can't copy to clipboard!");
+        }
       },
       ("check", Some(check_matches)) =>{
             // Now we have a reference to check's matches
             // filename is safe to unwrap as it is required argument
             match Path::new(check_matches.value_of("filename").unwrap()).file_stem() {
-              None => println!("No filename in path!"),
+              None => {
+                println!("Error: No filename in path!");
+                return Err(io::Error::new(io::ErrorKind::Other,"-400 Incorrect Path!"))
+              },
               Some(name) => {
                 // 1 ms * 1000000 = 1 nanosec
                 let path = name.to_string_lossy();
@@ -115,6 +114,7 @@ fn timestamp() -> Result<(), io::Error>{
 
           },
           ("rename", Some(rename_matches)) =>{
+            // Get date/timestamp value from argument
             let ts: u64 = if rename_matches.is_present("date") {
               to_unix(rename_matches.value_of("date").unwrap().to_owned())
               .expect("Wrong format!")
@@ -127,34 +127,54 @@ fn timestamp() -> Result<(), io::Error>{
               to_unix((Utc::now().format("%Y-%m-%d %H:%M:%S%.f").to_string())).expect("Wrong format?")
             };
 
-
-            
-            let unix: u64 = if rename_matches.is_present("randomize") {
-             gentimestamp(ts, 100)
-           } else {
-            ts
-          };
-
-          let path = Path::new(rename_matches.value_of("file").unwrap());
-          if path.is_file() {
-            print!("Renaming file: {:?} ", path );
-            // extension
-            let mut output = path.to_path_buf();
-            output.set_file_name(unix.to_string());
-            if let Some(ext) = path.extension() {
-              output.set_extension(ext);
-            } 
-            println!("to {}", output.to_string_lossy() );
-            fs::rename(path, output).expect("Could not rename!");
+            let path = Path::new(rename_matches.value_of("file").unwrap());
+            if path.is_file() {
+              let unix: u64 = if rename_matches.is_present("randomize") {
+               gentimestamp(ts, 0, RANGE)
+              } else {
+                ts
+              };
+            renamefile(unix, path);
           } else if path.is_dir() {
-            unimplemented!();
+
+            let filecount = fs::read_dir(path).unwrap().collect::<Vec<_>>().len();
+            let mut input = String::new();
+            while input.cmp(&"y".to_owned()) != Ordering::Equal && input.cmp(&"n".to_owned()) != Ordering::Equal {
+              println!("Renaming {} files in directory. Are you sure you want to continue (y/n)", filecount);
+              io::stdin().read_line(&mut input)
+              .expect("Failed to read line");
+
+              input = match input.trim().parse(){
+                Ok(s) => s,
+                Err(_) => continue,
+              };
+            }
+
+            if input.cmp(&"n".to_owned()) == Ordering::Equal {
+              return Ok(());
+            }
+
+
+
+            for (i, entry) in try!(fs::read_dir(path)).enumerate() {
+              let unix: u64 = if rename_matches.is_present("randomize") {
+               gentimestamp(ts, (i as i64)*RANGE,  ((i as i64)+1)*RANGE-1)
+              } else {
+                ts+(i as u64)
+              };
+              let entry = try!(entry);
+              let path = entry.path();
+              if path.is_file() {
+                renamefile(unix, &path)
+              }
+            }
           } else {
               // Not a file
               return Err(io::Error::new(io::ErrorKind::Other,"-406 Not a file"))
             }
             
           },
-        ("", None)   => {
+          ("", None)   => {
           println!("No command was used"); // If no subcommand was usd it'll match the tuple ("", None)
           println!("Type timestamp -h for help");
         },
@@ -165,10 +185,12 @@ fn timestamp() -> Result<(), io::Error>{
     }
 
 
-    fn gentimestamp(ts: u64, range: i64) -> u64 {
-      let variation = rand::thread_rng().gen_range(-range, range);
-      if ((ts as i64) + variation) < 0 {
-        0
+    fn gentimestamp(ts: u64, start_range: i64, end_range: i64) -> u64 {
+      // let filelist = fs::read_dir(path).unwrap().collect::<Vec<_>>();
+      let variation = rand::thread_rng().gen_range(start_range, end_range);
+      if ((ts as i64) + variation) < 0 && (ts as i64) < RANGE {
+        // Needs to return an error - timestamp is too small for randomization. 
+        unreachable!()
       } else {
         ((ts as i64) + variation) as u64
       }
@@ -185,4 +207,18 @@ fn timestamp() -> Result<(), io::Error>{
         Err(_e) => Err(io::Error::new(io::ErrorKind::Other,"Not formatted in '%Y-%m-%d %H:%M:%S%.f'")),
       }
     }
+
+    fn renamefile(unix: u64, path: &Path) {
+      if path.is_file() {
+        print!("Renaming file: {:?} ", path );
+            // extension
+            let mut output = path.to_path_buf();
+            output.set_file_name(unix.to_string());
+            if let Some(ext) = path.extension() {
+              output.set_extension(ext);
+            } 
+            println!("to {}", output.to_string_lossy() );
+            fs::rename(path, output).expect("Could not rename!");
+          }
+        }
 
