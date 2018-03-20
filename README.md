@@ -11,11 +11,9 @@ Future Plans:
 ## Install
 Clone the repository and then run cargo install. You'll need rust & cargo. 
 
-``git clone https://github.com/azunymous/UNIX-Timestamp-Utility.git``
-
-``cd UNIX-Timestamp-Utility``
-
-``cargo install``
+``git clone https://github.com/azunymous/UNIX-Timestamp-Utility.git
+cd UNIX-Timestamp-Utility
+cargo install``
 
 ## Use
 ``timestamp -h ``
